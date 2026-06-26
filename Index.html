@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Smos — Lab Tracker</title>
+<style>
+  :root {
+    --red: #E53935;
+    --red-light: #FFEBEE;
+    --orange: #F57C00;
+    --orange-light: #FFF3E0;
+    --green: #2E7D32;
+    --green-light: #E8F5E9;
+    --gray: #607D8B;
+    --gray-light: #ECEFF1;
+    --blue: #1565C0;
+    --blue-light: #E3F2FD;
+    --bg: #F5F7FA;
+    --white: #FFFFFF;
+    --border: #DDE3EA;
+    --text: #1A2332;
+    --text-secondary: #5A6A7A;
+    --primary: #1565C0;
+    --primary-dark: #0D47A1;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* HEADER */
+  .header { background: var(--primary); color: white; padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .logo span { opacity: 0.7; font-weight: 400; font-size: 13px; margin-left: 4px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .btn-new { background: white; color: var(--primary); border: none; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .btn-new:hover { background: #E3F2FD; }
+
+  /* TABS */
+  .tabs { background: white; border-bottom: 1px solid var(--border); display: flex; padding: 0 20px; gap: 0; position: sticky; top: 56px; z-index: 99; }
+  .tab { padding: 14px 20px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
+  .tab:hover { color: var(--primary); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab-badge { background: var(--red); color: white; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+  .tab-badge.orange { background: var(--orange); }
+  .tab-badge.green { background: var(--green); }
+  .tab-badge.gray { background: var(--gray); }
+
+  /* CONTENT */
+  .content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+
+  /* SEARCH */
+  .search-bar { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .search-bar input { border: none; outline: none; flex: 1; font-size: 14px; color: var(--text); background: transparent; }
+  .search-icon { color: var(--text-secondary); font-size: 16px; }
+
+  /* CARDS */
+  .request-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.15s; border-left: 4px solid var(--border); }
+  .request-card:hover { box-shadow: var(--shadow); }
+  .request-card.over-tat { border-left-color: var(--red); background: var(--red-light); }
+  .request-card.approaching { border-left-color: var(--orange); background: var(--orange-light); }
+  .request-card.on-track { border-left-color: var(--green); }
+  .request-card.completed { border-left-color: var(--gray); background: var(--gray-light); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .card-id { font-weight: 700; font-size: 14px; color: var(--text); }
+  .card-patient { font-size: 15px; font-weight: 600; color: var(--text); }
+  .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .status-badge.over-tat { background: var(--red); color: white; }
+  .status-badge.approaching { background: var(--orange); color: white; }
+  .status-badge.on-track { background: var(--green); color: white; }
+  .status-badge.completed { background: var(--gray); color: white; }
+  .card-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin-top: 8px; }
+  .card-info-item { display: flex; flex-direction: column; gap: 1px; }
+  .card-info-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .card-info-value { font-size: 13px; color: var(--text); font-weight: 500; }
+  .card-info-value.blue { color: var(--blue); font-weight: 600; }
+  .card-info-value.red { color: var(--red); font-weight: 600; }
+  .card-info-value.orange { color: var(--orange); font-weight: 600; }
+  .card-info-value.green { color: var(--green); font-weight: 600; }
+  .card-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .btn-complete { background: var(--green); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .btn-complete:hover { background: #1B5E20; }
+  .btn-reopen { background: var(--orange); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-reopen:hover { background: #E65100; }
+
+  /* GROUPED CARDS */
+  .group-header { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; padding-left: 4px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 14px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: white; z-index: 1; border-radius: 14px 14px 0 0; }
+  .modal-title { font-size: 17px; font-weight: 700; }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 2px 6px; border-radius: 6px; }
+  .modal-close:hover { background: var(--gray-light); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-label .req { color: var(--red); }
+  .form-input, .form-select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text); background: white; outline: none; transition: border 0.15s; }
+  .form-input:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+  .form-input[readonly] { background: var(--bg); color: var(--text-secondary); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .section-divider { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--blue-light); }
+
+  /* TEST CHECKBOXES */
+  .test-grid { display: flex; flex-direction: column; gap: 8px; }
+  .test-checkbox-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .test-checkbox-item:hover { border-color: var(--primary); background: var(--blue-light); }
+  .test-checkbox-item.selected { border-color: var(--primary); background: var(--blue-light); }
+  .test-checkbox-left { display: flex; align-items: center; gap: 10px; }
+  .test-checkbox-left input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+  .test-name-label { font-weight: 600; font-size: 13px; }
+  .test-category { font-size: 11px; color: var(--text-secondary); }
+  .test-tat { font-size: 12px; color: var(--primary); font-weight: 600; }
+
+  /* BUTTONS */
+  .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .btn-secondary:hover { background: var(--bg); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+  .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+
+  /* CONFIG SCREEN */
+  .config-screen { max-width: 480px; margin: 60px auto; background: white; border-radius: 14px; padding: 32px; box-shadow: var(--shadow); }
+  .config-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .config-subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+  .config-note { background: var(--blue-light); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--blue); margin-top: 16px; line-height: 1.5; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1A2332; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 999; display: none; }
+  .toast.show { display: block; animation: fadeInUp 0.3s ease; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  /* COMPLETE MODAL */
+  .select-staff { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; margin-top: 10px; }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .card-info { grid-template-columns: 1fr 1fr; }
+    .tabs { overflow-x: auto; }
+    .tab { white-space: nowrap; padding: 14px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div id="configScreen" style="padding:20px;">
+  <div class="config-screen">
+    <div class="config-title">🔬 Team Smos Lab Tracker</div>
+    <div class="config-subtitle">Connect to your Google Sheet to get started.</div>
+    <div class="form-group">
+      <label class="form-label">Google Apps Script URL <span class="req">*</span></label>
+      <input class="form-input" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="font-size:12px;">
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="saveConfig()">Connect & Start</button>
+    <div class="config-note">
+      📋 <strong>How to get this URL:</strong><br>
+      1. Open your Google Sheet → Extensions → Apps Script<br>
+      2. Paste the backend script → Save<br>
+      3. Deploy → New deployment → Web app<br>
+      4. Copy the URL and paste it above
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🔬 Team Smos <span>Lab Tracker</span></div>
+    </div>
+    <div class="header-right">
+      <button class="btn-new" onclick="openNewRequest()">+ New Request</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overtat')" id="tab-overtat">
+      🔴 Over TAT <span class="tab-badge" id="badge-overtat">0</span>
+    </div>
+    <div class="tab" onclick="switchTab('pending')" id="tab-pending">
+      🟡 Pending <span class="tab-badge orange" id="badge-pending">0</span>
+    </div>
+    <div class="tab" onclick="switchTab('completed')" id="tab-completed">
+      ✅ Completed <span class="tab-badge gray" id="badge-completed">0</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search by Request ID, Patient Name, Partner Lab..." id="searchInput" oninput="renderCurrentTab()">
+    </div>
+    <div id="tabContent"></div>
+  </div>
+</div>
+
+<!-- NEW REQUEST MODAL -->
+<div class="modal-overlay" id="newRequestModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Request</div>
+      <button class="modal-close" onclick="closeModal('newRequestModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-divider">Request Info</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Request ID <span class="req">*</span></label>
+          <input class="form-input" id="f-requestId" placeholder="BTD-000001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date & Time</label>
+          <input class="form-input" id="f-datetime" readonly>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Patient Name <span class="req">*</span></label>
+        <input class="form-input" id="f-patient" placeholder="Full name">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Physician / Institution</label>
+          <input class="form-input" id="f-institution" placeholder="Hospital or doctor">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Partner Laboratory <span class="req">*</span></label>
+          <select class="form-select" id="f-partner" onchange="updateCountry()">
+            <option value="">Select lab...</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Country</label>
+          <input class="form-input" id="f-country" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Created By <span class="req">*</span></label>
+          <select class="form-select" id="f-createdby">
+            <option value="">Select staff...</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Specimen</label>
+          <input class="form-input" id="f-specimen" placeholder="e.g. Blood, Urine">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Remark</label>
+          <input class="form-input" id="f-remark" placeholder="Optional note">
+        </div>
+      </div>
+
+      <div class="section-divider">Select Tests <span style="color:var(--text-secondary);font-size:11px;text-transform:none;font-weight:400;">(select one or more)</span></div>
+      <div class="test-grid" id="testGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('newRequestModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveRequest()">Save Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE MODAL -->
+<div class="modal-overlay" id="completeModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">Mark as Completed</div>
+      <button class="modal-close" onclick="closeModal('completeModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-secondary);font-size:14px;">Select who is releasing this result:</p>
+      <select class="select-staff" id="releasedBySelect">
+        <option value="">Select staff...</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('completeModal')">Cancel</button>
+      <button class="btn-primary" onclick="confirmComplete()">Confirm Complete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let SCRIPT_URL = '';
+let allRequests = [];
+let staffList = [];
+let partnerLabs = [];
+let testMaster = [];
+let currentTab = 'overtat';
+let completingRowId = null;
+
+// CONFIG
+function saveConfig() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  if (!url) { alert('Please enter the Apps Script URL'); return; }
+  SCRIPT_URL = url;
+  localStorage.setItem('labTrackerUrl', url);
+  document.getElementById('configScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  loadAllData();
+}
+
+// Check saved URL
+window.onload = function() {
+  const saved = localStorage.getItem('labTrackerUrl');
+  if (saved) {
+    SCRIPT_URL = saved;
+    document.getElementById('configScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    loadAllData();
+  }
+};
+
+// API CALLS
+async function api(params) {
+  const url = SCRIPT_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return await res.json();
+}
+
+async function loadAllData() {
+  document.getElementById('tabContent').innerHTML = '<div class="loading">Loading data...</div>';
+  try {
+    const [requests, staff, labs, tests] = await Promise.all([
+      api({action:'getRequests'}),
+      api({action:'getStaff'}),
+      api({action:'getPartnerLabs'}),
+      api({action:'getTestMaster'})
+    ]);
+    allRequests = requests || [];
+    staffList = (staff || []).filter(s => s.Active === 'Yes' || s.Active === true);
+    partnerLabs = labs || [];
+    testMaster = tests || [];
+    populateFormDropdowns();
+    renderCurrentTab();
+  } catch(e) {
+    document.getElementById('tabContent').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Connection Error</h3><p>Check your Apps Script URL and try again.</p></div>';
+  }
+}
+
+// POPULATE DROPDOWNS
+function populateFormDropdowns() {
+  const partnerSel = document.getElementById('f-partner');
+  partnerSel.innerHTML = '<option value="">Select lab...</option>';
+  // Cambodia first
+  const sorted = [...partnerLabs].sort((a,b) => {
+    if (a.Country === 'Cambodia') return -1;
+    if (b.Country === 'Cambodia') return 1;
+    return 0;
+  });
+  sorted.forEach(lab => {
+    partnerSel.innerHTML += `<option value="${lab.Lab_ID}" data-country="${lab.Country}">${lab.Partner_Name} — ${lab.Country}</option>`;
+  });
+
+  const staffSel = document.getElementById('f-createdby');
+  staffSel.innerHTML = '<option value="">Select staff...</option>';
+  staffList.forEach(s => {
+    staffSel.innerHTML += `<option value="${s.Staff_ID}">${s.Staff_Name}</option>`;
+  });
+
+  // Test checkboxes
+  const grid = document.getElementById('testGrid');
+  grid.innerHTML = '';
+  testMaster.forEach(t => {
+    grid.innerHTML += `
+      <div class="test-checkbox-item" id="test-item-${t.Test_ID}" onclick="toggleTest('${t.Test_ID}')">
+        <div class="test-checkbox-left">
+          <input type="checkbox" id="chk-${t.Test_ID}" onclick="event.stopPropagation(); toggleTest('${t.Test_ID}')">
+          <div>
+            <div class="test-name-label">${t.Test_Name}</div>
+            <div class="test-category">${t.Category}</div>
+          </div>
+        </div>
+        <div class="test-tat">${t.TAT_Value} ${t.TAT_Unit}</div>
+      </div>`;
+  });
+
+  // Released by dropdown
+  const relSel = document.getElementById('releasedBySelect');
+  relSel.innerHTML = '<option value="">Select staff...</option>';
+  staffList.forEach(s => {
+    relSel.innerHTML += `<option value="${s.Staff_ID}">${s.Staff_Name}</option>`;
+  });
+}
+
+function toggleTest(testId) {
+  const chk = document.getElementById('chk-' + testId);
+  const item = document.getElementById('test-item-' + testId);
+  chk.checked = !chk.checked;
+  item.classList.toggle('selected', chk.checked);
+}
+
+function updateCountry() {
+  const sel = document.getElementById('f-partner');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('f-country').value = opt ? (opt.dataset.country || '') : '';
+}
+
+// TAT CALCULATIONS
+function calcDueDateTime(requestDateTime, tatValue, tatUnit) {
+  const dt = new Date(requestDateTime);
+  const val = parseFloat(tatValue);
+  if (tatUnit === 'Hours') {
+    dt.setTime(dt.getTime() + val * 3600000);
+  } else {
+    dt.setDate(dt.getDate() + val);
+  }
+  return dt;
+}
+
+function getTATStatus(row) {
+  if (row.Status === 'Completed') return 'completed';
+  const due = calcDueDateTime(row.Request_DateTime, row.TAT_Value, row.TAT_Unit);
+  const now = new Date();
+  if (now > due) return 'over-tat';
+  const diffDays = (due - now) / (1000 * 60 * 60 * 24);
+  if (diffDays <= 2) return 'approaching';
+  return 'on-track';
+}
+
+function formatDateTime(dt) {
+  if (!dt) return '-';
+  const d = new Date(dt);
+  if (isNaN(d)) return dt;
+  return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:true});
+}
+
+function formatTimeRemaining(row) {
+  if (row.Status === 'Completed') return 'Completed';
+  const due = calcDueDateTime(row.Request_DateTime, row.TAT_Value, row.TAT_Unit);
+  const now = new Date();
+  const diff = due - now;
+  if (diff < 0) {
+    const hours = Math.abs(Math.floor(diff / 3600000));
+    const days = Math.floor(hours / 24);
+    if (days > 0) return `Overdue by ${days}d ${hours % 24}h`;
+    return `Overdue by ${hours}h`;
+  }
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ${hours % 24}h remaining`;
+  return `${hours}h remaining`;
+}
+
+function getStaffName(id) {
+  const s = staffList.find(x => x.Staff_ID == id);
+  return s ? s.Staff_Name : id;
+}
+
+function getLabName(id) {
+  const l = partnerLabs.find(x => x.Lab_ID == id);
+  return l ? l.Partner_Name : id;
+}
+
+// TABS
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  renderCurrentTab();
+}
+
+function renderCurrentTab() {
+  updateBadges();
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = allRequests.filter(r => {
+    if (!search) return true;
+    return (r.Request_ID||'').toLowerCase().includes(search) ||
+           (r.Patient_Name||'').toLowerCase().includes(search) ||
+           (getLabName(r.Partner)||'').toLowerCase().includes(search);
+  });
+
+  if (currentTab === 'overtat') renderOverTAT(filtered);
+  else if (currentTab === 'pending') renderPending(filtered);
+  else renderCompleted(filtered);
+}
+
+function updateBadges() {
+  const overtat = allRequests.filter(r => getTATStatus(r) === 'over-tat').length;
+  const pending = allRequests.filter(r => r.Status === 'Pending').length;
+  const completed = allRequests.filter(r => r.Status === 'Completed').length;
+  document.getElementById('badge-overtat').textContent = overtat;
+  document.getElementById('badge-pending').textContent = pending;
+  document.getElementById('badge-completed').textContent = completed;
+}
+
+function renderOverTAT(data) {
+  const rows = data.filter(r => getTATStatus(r) === 'over-tat')
+    .sort((a,b) => new Date(a.Request_DateTime) - new Date(b.Request_DateTime));
+  const el = document.getElementById('tabContent');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><h3>No overdue requests</h3><p>All tests are within their TAT.</p></div>'; return; }
+  el.innerHTML = rows.map(r => renderCard(r, 'over-tat')).join('');
+}
+
+function renderPending(data) {
+  const rows = data.filter(r => r.Status === 'Pending');
+  // Sort: Cambodia first, then oldest
+  const cambodia = rows.filter(r => {
+    const lab = partnerLabs.find(l => l.Lab_ID == r.Partner);
+    return lab && lab.Country === 'Cambodia';
+  }).sort((a,b) => new Date(a.Request_DateTime) - new Date(b.Request_DateTime));
+  const others = rows.filter(r => {
+    const lab = partnerLabs.find(l => l.Lab_ID == r.Partner);
+    return !lab || lab.Country !== 'Cambodia';
+  }).sort((a,b) => new Date(a.Request_DateTime) - new Date(b.Request_DateTime));
+
+  const el = document.getElementById('tabContent');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎉</div><h3>No pending requests</h3><p>All caught up!</p></div>'; return; }
+  let html = '';
+  if (cambodia.length) { html += '<div class="group-header">🇰🇭 Cambodia</div>' + cambodia.map(r => renderCard(r, getTATStatus(r))).join(''); }
+  if (others.length) { html += '<div class="group-header">🌏 Overseas</div>' + others.map(r => renderCard(r, getTATStatus(r))).join(''); }
+  el.innerHTML = html;
+}
+
+function renderCompleted(data) {
+  const rows = data.filter(r => r.Status === 'Completed')
+    .sort((a,b) => new Date(b.Released_DateTime) - new Date(a.Released_DateTime));
+  const el = document.getElementById('tabContent');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><h3>No completed requests</h3></div>'; return; }
+  el.innerHTML = rows.map(r => renderCard(r, 'completed')).join('');
+}
+
+function renderCard(r, status) {
+  const statusLabels = { 'over-tat':'OVER TAT', 'approaching':'APPROACHING', 'on-track':'ON TRACK', 'completed':'COMPLETED' };
+  const tatRemaining = formatTimeRemaining(r);
+  const dueDate = calcDueDateTime(r.Request_DateTime, r.TAT_Value, r.TAT_Unit);
+  const tatClass = status === 'over-tat' ? 'red' : status === 'approaching' ? 'orange' : status === 'completed' ? '' : 'green';
+
+  let actions = '';
+  if (r.Status === 'Pending') {
+    actions = `<div class="card-actions"><button class="btn-complete" onclick="event.stopPropagation();openComplete('${r.Row_ID}')">✔ Mark as Completed</button></div>`;
+  } else if (r.Status === 'Completed') {
+    actions = `<div class="card-actions"><button class="btn-reopen" onclick="event.stopPropagation();reopenRequest('${r.Row_ID}')">↩ Reopen</button></div>`;
+  }
+
+  return `
+    <div class="request-card ${status}">
+      <div class="card-top">
+        <div>
+          <div class="card-id">${r.Request_ID}</div>
+          <div class="card-patient">${r.Patient_Name}</div>
+        </div>
+        <span class="status-badge ${status}">${statusLabels[status]}</span>
+      </div>
+      <div class="card-info">
+        <div class="card-info-item">
+          <span class="card-info-label">Test</span>
+          <span class="card-info-value">${r.Test_Name || '-'}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Partner Lab</span>
+          <span class="card-info-value blue">${getLabName(r.Partner)}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Country</span>
+          <span class="card-info-value blue">${r.Country || '-'}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">TAT</span>
+          <span class="card-info-value">${r.TAT_Value} ${r.TAT_Unit}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Due</span>
+          <span class="card-info-value">${formatDateTime(dueDate)}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Remaining</span>
+          <span class="card-info-value ${tatClass}">${tatRemaining}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Created By</span>
+          <span class="card-info-value">${getStaffName(r.Created_By)}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Request Date</span>
+          <span class="card-info-value">${formatDateTime(r.Request_DateTime)}</span>
+        </div>
+        ${r.Specimen ? `<div class="card-info-item"><span class="card-info-label">Specimen</span><span class="card-info-value">${r.Specimen}</span></div>` : ''}
+        ${r.Remark ? `<div class="card-info-item"><span class="card-info-label">Remark</span><span class="card-info-value">${r.Remark}</span></div>` : ''}
+        ${r.Status === 'Completed' ? `
+        <div class="card-info-item">
+          <span class="card-info-label">Released By</span>
+          <span class="card-info-value">${getStaffName(r.Released_By)}</span>
+        </div>
+        <div class="card-info-item">
+          <span class="card-info-label">Released At</span>
+          <span class="card-info-value">${formatDateTime(r.Released_DateTime)}</span>
+        </div>` : ''}
+      </div>
+      ${actions}
+    </div>`;
+}
+
+// NEW REQUEST
+function openNewRequest() {
+  document.getElementById('f-requestId').value = '';
+  document.getElementById('f-patient').value = '';
+  document.getElementById('f-institution').value = '';
+  document.getElementById('f-partner').value = '';
+  document.getElementById('f-country').value = '';
+  document.getElementById('f-createdby').value = '';
+  document.getElementById('f-specimen').value = '';
+  document.getElementById('f-remark').value = '';
+  document.getElementById('f-datetime').value = formatDateTime(new Date());
+  // Uncheck all tests
+  testMaster.forEach(t => {
+    const chk = document.getElementById('chk-' + t.Test_ID);
+    if (chk) chk.checked = false;
+    const item = document.getElementById('test-item-' + t.Test_ID);
+    if (item) item.classList.remove('selected');
+  });
+  document.getElementById('newRequestModal').classList.add('open');
+}
+
+async function saveRequest() {
+  const requestId = document.getElementById('f-requestId').value.trim();
+  const patient = document.getElementById('f-patient').value.trim();
+  const partner = document.getElementById('f-partner').value;
+  const createdBy = document.getElementById('f-createdby').value;
+
+  if (!requestId || !patient || !partner || !createdBy) {
+    alert('Please fill in all required fields (Request ID, Patient Name, Partner Lab, Created By)');
+    return;
+  }
+
+  // Validate BTD format
+  if (!/^BTD-\d{6}$/.test(requestId)) {
+    alert('Request ID must be in format BTD-000001');
+    return;
+  }
+
+  // Get selected tests
+  const selectedTests = testMaster.filter(t => {
+    const chk = document.getElementById('chk-' + t.Test_ID);
+    return chk && chk.checked;
+  });
+
+  if (!selectedTests.length) {
+    alert('Please select at least one test');
+    return;
+  }
+
+  const institution = document.getElementById('f-institution').value.trim();
+  const country = document.getElementById('f-country').value;
+  const specimen = document.getElementById('f-specimen').value.trim();
+  const remark = document.getElementById('f-remark').value.trim();
+
+  try {
+    // Create one row per selected test
+    for (const test of selectedTests) {
+      await api({
+        action: 'addRequest',
+        Request_ID: requestId,
+        Patient_Name: patient,
+        Physician_Institution: institution,
+        Partner: partner,
+        Country: country,
+        Created_By: createdBy,
+        Test_ID: test.Test_ID,
+        Test_Name: test.Test_Name,
+        TAT_Value: test.TAT_Value,
+        TAT_Unit: test.TAT_Unit,
+        Category: test.Category,
+        Specimen: specimen,
+        Remark: remark
+      });
+    }
+    closeModal('newRequestModal');
+    showToast(`✅ Request saved with ${selectedTests.length} test(s)`);
+    await loadAllData();
+  } catch(e) {
+    alert('Error saving request. Please try again.');
+  }
+}
+
+// COMPLETE
+function openComplete(rowId) {
+  completingRowId = rowId;
+  document.getElementById('releasedBySelect').value = '';
+  document.getElementById('completeModal').classList.add('open');
+}
+
+async function confirmComplete() {
+  const releasedBy = document.getElementById('releasedBySelect').value;
+  if (!releasedBy) { alert('Please select who is releasing this result'); return; }
+  try {
+    await api({ action:'updateRequest', Row_ID: completingRowId, Status:'Completed', Released_By: releasedBy });
+    closeModal('completeModal');
+    showToast('✅ Marked as Completed');
+    await loadAllData();
+  } catch(e) { alert('Error updating request'); }
+}
+
+// REOPEN
+async function reopenRequest(rowId) {
+  if (!confirm('Reopen this request?')) return;
+  try {
+    await api({ action:'updateRequest', Row_ID: rowId, Status:'Pending', Released_By:'' });
+    showToast('↩ Request reopened');
+    await loadAllData();
+  } catch(e) { alert('Error reopening request'); }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
