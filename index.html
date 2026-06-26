@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -350,7 +349,7 @@ async function loadAll(){
     partnerLabs=arr(labs);testMaster=arr(tests);usersList=arr(users);
     fillDropdowns();renderTab();
   }catch(e){
-    document.getElementById('tabContent').innerHTML='<div class="empty"><div class="eicon">⚠️</div><h3>Connection Error</h3><p>Check your Apps Script and try again.</p></div>';
+    document.getElementById('tabContent').innerHTML=`<div class="empty"><div class="eicon">⚠️</div><h3>Connection Error</h3><p>Could not load data. <button onclick="loadAll()" style="color:var(--blue);background:none;border:none;cursor:pointer;font-size:14px;text-decoration:underline;">Try again</button></p></div>`;
   }
 }
 
@@ -527,35 +526,54 @@ function openNew(){
   document.getElementById('reqModal').classList.add('open');
 }
 
-// EDIT REQUEST — now allows editing Request ID and Test
+// EDIT REQUEST — allows editing Request ID, Test, and all fields
 function openEdit(rowId){
   const r=allRequests.find(x=>x.Row_ID==rowId);if(!r)return;
   editingRowId=rowId;
   document.getElementById('reqTitle').textContent='Edit Request';
   document.getElementById('reqSaveBtn').textContent='Update Request';
   document.getElementById('testSectionHint').textContent='(change if needed)';
+  // Fill basic fields
   document.getElementById('f-rid').value=r.Request_ID;
-  document.getElementById('f-rid').readOnly=false; // allow editing
+  document.getElementById('f-rid').readOnly=false;
   document.getElementById('f-dt').value=fdt(r.Request_DateTime);
   document.getElementById('f-patient').value=r.Patient_Name||'';
   document.getElementById('f-inst').value=r.Physician_Institution||'';
   document.getElementById('f-specimen').value=r.Specimen||'';
   document.getElementById('f-remark').value=r.Remark||'';
-  // Set partner
-  const ps=document.getElementById('f-partner');
-  ps.value=r.Partner||'';
-  const opt=ps.options[ps.selectedIndex];
-  document.getElementById('f-country').value=opt&&opt.dataset.country?opt.dataset.country:r.Country||'';
   document.getElementById('f-createdby').value=r.Created_By||'';
-  // Pre-select existing test
+  // Match partner lab — try by Lab_ID first, then by name
+  const ps=document.getElementById('f-partner');
+  ps.value='';
+  for(let i=0;i<ps.options.length;i++){
+    if(String(ps.options[i].value)===String(r.Partner)){
+      ps.selectedIndex=i;break;
+    }
+  }
+  // If still not matched, try matching lab name
+  if(!ps.value&&r.Partner){
+    const stored=String(r.Partner).toLowerCase();
+    for(let i=0;i<ps.options.length;i++){
+      if(ps.options[i].text.toLowerCase().includes(stored)){ps.selectedIndex=i;break;}
+    }
+  }
+  // Set country from selected option or stored value
+  const selOpt=ps.options[ps.selectedIndex];
+  document.getElementById('f-country').value=selOpt&&selOpt.dataset.country?selOpt.dataset.country:r.Country||'';
+  // Pre-select test — find in testMaster by Test_ID or Test_Name
   selTests={};
-  if(r.Test_ID&&r.Test_Name){
-    selTests[r.Test_ID]={Test_ID:r.Test_ID,Test_Name:r.Test_Name,TAT_Value:r.TAT_Value,TAT_Unit:r.TAT_Unit,Category:r.Category||''};
+  let foundTest=testMaster.find(t=>String(t.Test_ID)===String(r.Test_ID));
+  if(!foundTest&&r.Test_Name)foundTest=testMaster.find(t=>t.Test_Name===r.Test_Name);
+  if(foundTest){
+    selTests[foundTest.Test_ID]=foundTest;
+  }else if(r.Test_Name){
+    // Test not in master — use stored values
+    const fakeId=r.Test_ID||r.Test_Name;
+    selTests[fakeId]={Test_ID:fakeId,Test_Name:r.Test_Name,TAT_Value:r.TAT_Value||'',TAT_Unit:r.TAT_Unit||'',Category:r.Category||''};
   }
   document.getElementById('tsearch').value='';
   document.getElementById('tdd').innerHTML='';
   document.getElementById('tdd').classList.remove('open');
-  document.getElementById('tsearch').readOnly=false;
   renderTags();
   document.getElementById('reqModal').classList.add('open');
 }
