@@ -39,6 +39,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .tbadge.red{background:var(--red);}.tbadge.orange{background:var(--orange);}.tbadge.gray{background:var(--gray);}
 .content{padding:14px 16px;max-width:1100px;margin:0 auto;}
 .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.tab-divider{width:1px;background:var(--border);margin:8px 4px;flex-shrink:0;}
+.ctab{color:var(--muted);font-size:12px;padding:13px 12px;}
+.ctab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700;}
+.ctab:hover{color:var(--primary);}
 .sort-sel{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;cursor:pointer;white-space:nowrap;}
 .sort-sel:focus{border-color:var(--primary);}
 .burgent{background:#fff;color:#7B1FA2;border:1px solid #7B1FA2;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;}
@@ -184,6 +188,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div class="tab active" onclick="switchTab('overtat')" id="tab-overtat">🔴 Over TAT <span class="tbadge red" id="b-overtat">0</span></div>
     <div class="tab" onclick="switchTab('pending')" id="tab-pending">🟡 Pending <span class="tbadge orange" id="b-pending">0</span></div>
     <div class="tab" onclick="switchTab('completed')" id="tab-completed">✅ Completed <span class="tbadge gray" id="b-completed">0</span></div>
+    <div class="tab-divider"></div>
+    <div class="tab ctab" onclick="switchCountry('all')" id="ctab-all">🌐 All</div>
+    <div class="tab ctab" onclick="switchCountry('Cambodia')" id="ctab-Cambodia">🇰🇭 Cambodia</div>
+    <div class="tab ctab" onclick="switchCountry('Vietnam')" id="ctab-Vietnam">🇻🇳 Vietnam</div>
+    <div class="tab ctab" onclick="switchCountry('Korea')" id="ctab-Korea">🇰🇷 Korea</div>
   </div>
   <div class="content">
     <div class="toolbar">
@@ -305,7 +314,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <script>
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyHG1_uCzea7erAnkG6PgRFQSL0LGQNoKbY0D_9wxxV-XRy-SmvqPUo6t7BIodFgAzy/exec';
 let allRequests=[],staffList=[],partnerLabs=[],testMaster=[],usersList=[];
-let currentTab='overtat',currentUser=null,editingRowId=null,completingRowId=null,selTests={};
+let currentTab='overtat',currentCountry='all',currentUser=null,editingRowId=null,completingRowId=null,selTests={};
 let isSaving=false;
 
 window.onload=function(){
@@ -323,6 +332,7 @@ function showApp(){
   hide('loginScreen');show('mainApp');
   document.getElementById('huser').textContent='👤 '+currentUser.Username+' ('+currentUser.Role+')';
   document.getElementById('adminBtns').style.display=currentUser.Role==='Admin'?'inline-flex':'none';
+  document.getElementById('ctab-all')?.classList.add('active');
   loadAll();
 }
 
@@ -454,6 +464,14 @@ function switchTab(t){
   currentTab=t;
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
+  document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('ctab-'+currentCountry)?.classList.add('active');
+  renderTab();
+}
+function switchCountry(c){
+  currentCountry=c;
+  document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('ctab-'+c)?.classList.add('active');
   renderTab();
 }
 function sortRows(rows){
@@ -478,15 +496,18 @@ function sortRows(rows){
 function renderTab(){
   updateBadges();
   const q=document.getElementById('searchInput').value.toLowerCase();
-  let data=allRequests.filter(r=>!q||
-    (r.Request_ID||'').toLowerCase().includes(q)||
-    (r.Patient_Name||'').toLowerCase().includes(q)||
-    lname(r.Partner).toLowerCase().includes(q)||
-    (r.Remark||'').toLowerCase().includes(q)||
-    (r.Physician_Institution||'').toLowerCase().includes(q)||
-    (r.Test_Name||'').toLowerCase().includes(q)||
-    (r.Country||'').toLowerCase().includes(q)
-  );
+  let data=allRequests.filter(r=>{
+    const matchQ=!q||
+      (r.Request_ID||'').toLowerCase().includes(q)||
+      (r.Patient_Name||'').toLowerCase().includes(q)||
+      lname(r.Partner).toLowerCase().includes(q)||
+      (r.Remark||'').toLowerCase().includes(q)||
+      (r.Physician_Institution||'').toLowerCase().includes(q)||
+      (r.Test_Name||'').toLowerCase().includes(q)||
+      (r.Country||'').toLowerCase().includes(q);
+    const matchC=currentCountry==='all'||(r.Country||'').toLowerCase()===currentCountry.toLowerCase();
+    return matchQ&&matchC;
+  });
   if(currentTab==='overtat')renderOverTAT(data);
   else if(currentTab==='pending')renderPending(data);
   else renderCompleted(data);
