@@ -458,7 +458,6 @@ function switchTab(t){
 }
 function sortRows(rows){
   const s=document.getElementById('sortSel')?.value||'default';
-  // Always put urgent on top first
   const urgent=rows.filter(r=>r.Urgent==='Yes'||r.Urgent===true);
   const normal=rows.filter(r=>r.Urgent!=='Yes'&&r.Urgent!==true);
   function applySort(arr){
@@ -466,9 +465,15 @@ function sortRows(rows){
     if(s==='date_desc')return arr.sort((a,b)=>new Date(b.Request_DateTime)-new Date(a.Request_DateTime));
     if(s==='tat_asc')return arr.sort((a,b)=>calcDue(a.Request_DateTime,a.TAT_Value,a.TAT_Unit)-calcDue(b.Request_DateTime,b.TAT_Value,b.TAT_Unit));
     if(s==='patient_az')return arr.sort((a,b)=>(a.Patient_Name||'').localeCompare(b.Patient_Name||''));
-    return arr.sort((a,b)=>new Date(a.Request_DateTime)-new Date(b.Request_DateTime));
+    // Default: Approaching first, then On Track, sorted by due date ascending
+    return arr.sort((a,b)=>{
+      const sa=tatStatus(a);const sb=tatStatus(b);
+      if(sa==='approaching'&&sb!=='approaching')return-1;
+      if(sa!=='approaching'&&sb==='approaching')return 1;
+      return calcDue(a.Request_DateTime,a.TAT_Value,a.TAT_Unit)-calcDue(b.Request_DateTime,b.TAT_Value,b.TAT_Unit);
+    });
   }
-  return [...applySort(urgent),...applySort(normal)];
+  return[...applySort(urgent),...applySort(normal)];
 }
 function renderTab(){
   updateBadges();
