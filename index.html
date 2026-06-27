@@ -188,7 +188,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   <div class="content">
     <div class="toolbar">
       <button class="bnew" onclick="openNew()">+ New Request</button>
-      <div class="search-bar"><span>🔍</span><input type="text" placeholder="Search ID, Patient, Partner, Remark..." id="searchInput" oninput="renderTab()"></div>
+      <div class="search-bar"><span>🔍</span><input type="text" placeholder="Search ID, Patient, Partner, Test, Remark..." id="searchInput" oninput="renderTab()"></div>
       <select class="sort-sel" id="sortSel" onchange="renderTab()">
         <option value="default">Sort: Default</option>
         <option value="date_asc">Date ↑ Oldest</option>
@@ -478,7 +478,8 @@ function renderTab(){
     (r.Patient_Name||'').toLowerCase().includes(q)||
     lname(r.Partner).toLowerCase().includes(q)||
     (r.Remark||'').toLowerCase().includes(q)||
-    (r.Physician_Institution||'').toLowerCase().includes(q)
+    (r.Physician_Institution||'').toLowerCase().includes(q)||
+    (r.Test_Name||'').toLowerCase().includes(q)
   );
   if(currentTab==='overtat')renderOverTAT(data);
   else if(currentTab==='pending')renderPending(data);
