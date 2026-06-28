@@ -222,6 +222,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         <option value="date_desc">Date ↓ Newest</option>
         <option value="tat_asc">TAT ↑ Urgent first</option>
         <option value="patient_az">Patient A→Z</option>
+        <option value="partner_az">Partner Lab A→Z</option>
       </select>
     </div>
     <div id="tabContent"></div>
@@ -352,6 +353,12 @@ function showApp(){
   document.getElementById('adminBtns').style.display=currentUser.Role==='Admin'?'inline-flex':'none';
   document.getElementById('ctab-all')?.classList.add('active');
   loadAll();
+  // Auto sign out after 3 hours
+  clearTimeout(window._autoLogout);
+  window._autoLogout=setTimeout(()=>{
+    alert('⏰ Session expired after 3 hours. Please sign in again.');
+    doLogout();
+  }, 3*60*60*1000);
 }
 
 async function api(params){
@@ -378,6 +385,7 @@ async function doLogin(){
 }
 function doLogout(){
   if(!confirm('Are you sure you want to sign out?'))return;
+  clearTimeout(window._autoLogout);
   currentUser=null;localStorage.removeItem('labUser');showLogin();
 }
 
@@ -501,6 +509,7 @@ function sortRows(rows){
     if(s==='date_desc')return arr.sort((a,b)=>new Date(b.Request_DateTime)-new Date(a.Request_DateTime));
     if(s==='tat_asc')return arr.sort((a,b)=>calcDue(a.Request_DateTime,a.TAT_Value,a.TAT_Unit)-calcDue(b.Request_DateTime,b.TAT_Value,b.TAT_Unit));
     if(s==='patient_az')return arr.sort((a,b)=>(a.Patient_Name||'').localeCompare(b.Patient_Name||''));
+    if(s==='partner_az')return arr.sort((a,b)=>lname(a.Partner).localeCompare(lname(b.Partner)));
     // Default: Approaching first, then On Track, sorted by due date ascending
     return arr.sort((a,b)=>{
       const sa=tatStatus(a);const sb=tatStatus(b);
@@ -551,24 +560,40 @@ function toggleSortStatus(){
 
 function renderList(data){
   const el=document.getElementById('tabContent');
+  const s=document.getElementById('sortSel')?.value||'default';
 
-  // Sort
-  const sorted=[...data].sort((a,b)=>{
-    let va=a[listSortCol]||'';
-    let vb=b[listSortCol]||'';
-    // TAT status priority for default
-    if(listSortCol==='_status'){
-      const order={'over-tat':0,'urgent':1,'approaching':2,'on-track':3,'completed':4};
-      va=order[a.Urgent==='Yes'&&a.Status==='Pending'?'urgent':tatStatus(a)]??5;
-      vb=order[b.Urgent==='Yes'&&b.Status==='Pending'?'urgent':tatStatus(b)]??5;
-      return(va-vb)*listSortDir;
-    }
-    if(listSortCol==='Request_DateTime'||listSortCol==='Released_DateTime'){
-      va=new Date(va||0);vb=new Date(vb||0);
-      return(va-vb)*listSortDir;
-    }
-    return String(va).localeCompare(String(vb))*listSortDir;
-  });
+  // Apply dropdown sort first, then column header sort
+  let sorted=[...data];
+
+  // Dropdown sort
+  if(!listStatusSorted){
+    if(s==='date_asc')sorted.sort((a,b)=>new Date(a.Request_DateTime)-new Date(b.Request_DateTime));
+    else if(s==='date_desc')sorted.sort((a,b)=>new Date(b.Request_DateTime)-new Date(a.Request_DateTime));
+    else if(s==='tat_asc')sorted.sort((a,b)=>calcDue(a.Request_DateTime,a.TAT_Value,a.TAT_Unit)-calcDue(b.Request_DateTime,b.TAT_Value,b.TAT_Unit));
+    else if(s==='patient_az')sorted.sort((a,b)=>(a.Patient_Name||'').localeCompare(b.Patient_Name||''));
+    else if(s==='partner_az')sorted.sort((a,b)=>lname(a.Partner).localeCompare(lname(b.Partner)));
+    else sorted.sort((a,b)=>new Date(a.Request_DateTime)-new Date(b.Request_DateTime));
+  }
+
+  // Column header sort overrides dropdown sort
+  if(listSortCol&&listSortCol!=='Request_DateTime'||listStatusSorted){
+    sorted.sort((a,b)=>{
+      let va=a[listSortCol]||'';
+      let vb=b[listSortCol]||'';
+      if(listSortCol==='_status'){
+        const order={'urgent':0,'over-tat':1,'approaching':2,'on-track':3,'completed':4};
+        va=order[a.Urgent==='Yes'&&a.Status==='Pending'?'urgent':tatStatus(a)]??5;
+        vb=order[b.Urgent==='Yes'&&b.Status==='Pending'?'urgent':tatStatus(b)]??5;
+        return(va-vb)*listSortDir;
+      }
+      if(listSortCol==='Partner')return lname(a.Partner).localeCompare(lname(b.Partner))*listSortDir;
+      if(listSortCol==='Request_DateTime'||listSortCol==='Released_DateTime'){
+        va=new Date(va||0);vb=new Date(vb||0);
+        return(va-vb)*listSortDir;
+      }
+      return String(va).localeCompare(String(vb))*listSortDir;
+    });
+  }
 
   function thClick(col){
     if(listSortCol===col)listSortDir*=-1;
