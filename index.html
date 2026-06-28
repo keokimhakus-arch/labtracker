@@ -37,7 +37,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .tab.active{color:var(--primary);border-bottom-color:var(--primary);}
 .tbadge{border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;color:#fff;}
 .tbadge.red{background:var(--red);}.tbadge.orange{background:var(--orange);}.tbadge.gray{background:var(--gray);}
-.content{padding:14px 16px;max-width:1100px;margin:0 auto;}
+.content{padding:14px 16px;max-width:100%;margin:0 auto;}
 .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
 .tab-divider{width:1px;background:var(--border);margin:8px 4px;flex-shrink:0;}
 .ctab{color:var(--muted);font-size:12px;padding:13px 12px;}
@@ -45,13 +45,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .ctab:hover{color:var(--primary);}
 .sort-sel{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;cursor:pointer;white-space:nowrap;}
 .sort-sel:focus{border-color:var(--primary);}
-.list-table{width:100%;border-collapse:collapse;font-size:13px;}
-.list-table thead th{background:#1565C0;color:#fff;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none;}
+.list-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:auto;}
+.list-table thead th{background:#1565C0;color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none;}
 .list-table thead th:hover{background:#0D47A1;}
 .list-table thead th .sort-icon{margin-left:4px;opacity:.6;}
-.list-table tbody tr{border-bottom:1px solid rgba(0,0,0,.08);cursor:default;}
+.list-table tbody tr{border-bottom:1px solid rgba(0,0,0,.08);}
 .list-table tbody tr:hover{filter:brightness(.95);}
-.list-table td{padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.list-table td{padding:6px 12px;white-space:nowrap;}
 .list-table td:first-child{font-weight:700;font-size:12px;}
 .row-overtat{background:#FFCDD2;color:#B71C1C;}
 .row-approaching{background:#FFE0B2;color:#E65100;}
@@ -207,7 +207,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div class="tab-divider"></div>
     <div class="tab" onclick="switchTab('list')" id="tab-list">📋 All List</div>
     <div class="tab-divider"></div>
-    <div class="tab ctab" onclick="switchCountry('all')" id="ctab-all">🌐 All</div>
+    <div class="tab ctab active" onclick="switchCountry('all')" id="ctab-all">🌐 All</div>
     <div class="tab ctab" onclick="switchCountry('Cambodia')" id="ctab-Cambodia">🇰🇭 Cambodia</div>
     <div class="tab ctab" onclick="switchCountry('Vietnam')" id="ctab-Vietnam">🇻🇳 Vietnam</div>
     <div class="tab ctab" onclick="switchCountry('Korea')" id="ctab-Korea">🇰🇷 Korea</div>
@@ -610,24 +610,24 @@ function renderList(data){
           <th onclick="thClick('Patient_Name')">Patient Name${icon('Patient_Name')}</th>
           <th onclick="thClick('Test_Name')">Test Name${icon('Test_Name')}</th>
           <th onclick="thClick('Partner')">Partner Lab${icon('Partner')}</th>
-          <th onclick="thClick('Country')">Country${icon('Country')}</th>
           <th onclick="thClick('_status')">Status${icon('_status')}</th>
           <th onclick="thClick('Request_DateTime')">Request Date${icon('Request_DateTime')}</th>
           <th onclick="thClick('Released_By')">Released By${icon('Released_By')}</th>
           <th onclick="thClick('Released_DateTime')">Released Date${icon('Released_DateTime')}</th>
+          <th onclick="thClick('Remark')">Remark${icon('Remark')}</th>
         </tr>
       </thead>
       <tbody>
         ${sorted.map(r=>`<tr class="${rowClass(r)}">
           <td>${r.Request_ID||'-'}</td>
-          <td title="${r.Patient_Name||''}">${r.Patient_Name||'-'}</td>
-          <td title="${r.Test_Name||''}">${r.Test_Name||'-'}</td>
-          <td title="${lname(r.Partner)}">${lname(r.Partner)}</td>
-          <td>${r.Country||'-'}</td>
+          <td>${r.Patient_Name||'-'}</td>
+          <td>${r.Test_Name||'-'}</td>
+          <td>${lname(r.Partner)}</td>
           <td><strong>${statusLabel(r)}</strong></td>
           <td>${fdt(r.Request_DateTime)}</td>
           <td>${sname(r.Released_By)||'-'}</td>
           <td>${r.Released_DateTime?fdt(r.Released_DateTime):'-'}</td>
+          <td>${r.Remark||'-'}</td>
         </tr>`).join('')}
       </tbody>
     </table>
