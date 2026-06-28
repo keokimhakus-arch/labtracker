@@ -544,7 +544,12 @@ function renderTab(){
 let listSortCol='Request_DateTime';
 let listSortDir=1;
 let listStatusSorted=false;
+let hideCompleted=false;
 
+function toggleHideCompleted(){
+  hideCompleted=!hideCompleted;
+  renderTab();
+}
 function toggleSortStatus(){
   if(listStatusSorted){
     listSortCol='Request_DateTime';
@@ -563,7 +568,9 @@ function renderList(data){
   const s=document.getElementById('sortSel')?.value||'default';
 
   // Apply dropdown sort first, then column header sort
-  let sorted=[...data];
+  // Apply hide completed filter
+  let filtered=hideCompleted?data.filter(r=>r.Status!=='Completed'):data;
+  let sorted=[...filtered];
 
   // Dropdown sort
   if(!listStatusSorted){
@@ -624,7 +631,8 @@ function renderList(data){
 
   el.innerHTML=`
   <div class="list-sort-bar">
-    <span class="list-count">${sorted.length} record(s)</span>
+    <span class="list-count">${sorted.length} record(s)${hideCompleted?' (completed hidden)':''}</span>
+    <button class="btn-sm" id="hideCompletedBtn" style="background:${hideCompleted?'#E53935':'var(--blue-light)'};color:${hideCompleted?'#fff':'var(--red)'};border:none;transition:all .15s;" onclick="toggleHideCompleted()">${hideCompleted?'👁 Show Completed':'🚫 Hide Completed'}</button>
     <button class="btn-sm" id="sortStatusBtn" style="background:${listStatusSorted?'#7B1FA2':'var(--blue-light)'};color:${listStatusSorted?'#fff':'var(--blue)'};border:none;transition:all .15s;" onclick="toggleSortStatus()">&#9654; Sort by Status${listStatusSorted?' ✓':''}</button>
   </div>
   <div class="list-wrap">
