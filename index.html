@@ -59,19 +59,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .row-ontrack{background:#C8E6C9;color:#1B5E20;}
 .row-completed{background:#CFD8DC;color:#37474F;}
 .row-urgent{background:#CE93D8;color:#4A148C;}
-.hist-table{width:100%;border-collapse:collapse;font-size:13px;}
-.hist-table thead th{background:#37474F;color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
-.hist-table tbody tr{border-bottom:1px solid var(--border);}
-.hist-table tbody tr:hover{background:var(--bg);}
-.hist-table td{padding:7px 12px;font-size:13px;}
-.hist-action{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
-.hist-created{background:#E8F5E9;color:#2E7D32;}
-.hist-completed{background:#E3F2FD;color:#1565C0;}
-.hist-edited{background:#FFF3E0;color:#E65100;}
-.hist-deleted{background:#FFEBEE;color:#C62828;}
-.hist-reopened{background:#F3E5F5;color:#6A1B9A;}
-.hist-urgent{background:#FCE4EC;color:#880E4F;}
-.hist-user{background:#E0F7FA;color:#006064;}
 .list-sort-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .list-count{font-size:13px;color:var(--muted);}
 
@@ -214,9 +201,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
       <button class="bhdr" onclick="openChangePw()">🔑 Password</button>
       <div id="adminBtns" style="display:none;">
         <button class="bhdr" onclick="openUserMgmt()">👥 Users</button>
-        <button class="bhdr" id="historyBtn" onclick="openHistory()">
-          🔔 History
-        </button>
       </div>
       <button class="bso" onclick="doLogout()">⏻ Sign Out</button>
     </div>
@@ -345,23 +329,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div class="mfoot">
       <button class="bs" onclick="closeM('addUserModal')">Cancel</button>
       <button class="bp" id="addUserBtn" onclick="doAddUser()">Add User</button>
-    </div>
-  </div>
-</div>
-
-<!-- HISTORY MODAL -->
-<div class="moverlay" id="historyModal">
-  <div class="modal modal-lg" style="max-width:800px;max-height:85vh;">
-    <div class="mhdr">
-      <div class="mtitle">🔔 Change History</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input class="fi" id="histSearch" placeholder="Search..." style="width:200px;padding:6px 10px;font-size:13px;" oninput="filterHistoryModal()">
-        <button class="btn-sm" style="background:var(--blue-light);color:var(--blue);border:none;" onclick="cachedHistory=null;openHistory()">🔄</button>
-        <button class="mclose" onclick="closeM('historyModal')">×</button>
-      </div>
-    </div>
-    <div class="mbody" style="padding:14px 18px;" id="historyContent">
-      <div class="loading">⏳ Loading...</div>
     </div>
   </div>
 </div>
@@ -531,7 +498,6 @@ function lname(id){
 // TABS
 function switchTab(t){
   currentTab=t;
-  cachedHistory=null;
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.getElementById('tab-'+t)?.classList.add('active');
   document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));
@@ -568,7 +534,7 @@ function renderTab(){
   updateBadges();
   const q=(document.getElementById('searchInput').value||'').trim().toLowerCase();
   let data=q?allRequests.filter(r=>
-    (r.Request_ID||'').toLowerCase().includes(q)||
+    (r.Request_ID||'').toLowerCase().startsWith(q)||
     (r.Patient_Name||'').toLowerCase().includes(q)||
     lname(r.Partner).toLowerCase().includes(q)||
     (r.Test_Name||'').toLowerCase().includes(q)||
@@ -584,63 +550,9 @@ function renderTab(){
   else renderCompleted(data);
 }
 
-let cachedHistory=null;
-async function openHistory(){
-  document.getElementById('historyModal').classList.add('open');
-  document.getElementById('histSearch').value='';
-  if(!cachedHistory){
-    document.getElementById('historyContent').innerHTML='<div class="loading">⏳ Loading...</div>';
-    try{
-      cachedHistory=arr(await api({action:'getHistory'}));
-    }catch(e){
-      document.getElementById('historyContent').innerHTML='<div class="empty"><div class="eicon">⚠️</div><h3>Could not load history</h3></div>';
-      return;
-    }
-  }
-  renderHistoryModal('');
-}
-function filterHistoryModal(){
-  renderHistoryModal(document.getElementById('histSearch').value.toLowerCase());
-}
-function renderHistoryModal(q){
-  const filtered=[...cachedHistory].filter(h=>!q||
-    (h.Request_ID||'').toLowerCase().includes(q)||
-    (h.Patient_Name||'').toLowerCase().includes(q)||
-    (h.Action||'').toLowerCase().includes(q)||
-    (h.Done_By||'').toLowerCase().includes(q)||
-    (h.Detail||'').toLowerCase().includes(q)
-  ).reverse();
-  function actionClass(a){
-    a=(a||'').toLowerCase();
-    if(a.includes('creat'))return'hist-created';
-    if(a.includes('complet'))return'hist-completed';
-    if(a.includes('edit'))return'hist-edited';
-    if(a.includes('delet'))return'hist-deleted';
-    if(a.includes('reopen'))return'hist-reopened';
-    if(a.includes('urgent'))return'hist-urgent';
-    return'hist-user';
-  }
-  const el=document.getElementById('historyContent');
-  if(!filtered.length){
-    el.innerHTML='<div class="empty"><div class="eicon">📜</div><h3>No records found</h3></div>';
-    return;
-  }
-  el.innerHTML=`
-  <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">${filtered.length} record(s) — newest first</div>
-  <div class="list-wrap">
-    <table class="hist-table">
-      <thead><tr><th>Time</th><th>Action</th><th>Request ID</th><th>Patient</th><th>Done By</th><th>Detail</th></tr></thead>
-      <tbody>${filtered.map(h=>`<tr>
-        <td style="white-space:nowrap;font-size:12px;">${fdt(h.Timestamp)}</td>
-        <td><span class="hist-action ${actionClass(h.Action)}">${h.Action||'-'}</span></td>
-        <td><strong>${h.Request_ID||'-'}</strong></td>
-        <td>${h.Patient_Name||'-'}</td>
-        <td>${h.Done_By||'-'}</td>
-        <td style="color:var(--muted);font-size:12px;">${h.Detail||'-'}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-  </div>`;
-}
+
+
+
 
 let listSortCol='Request_DateTime';
 let listSortDir=1;
