@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -197,6 +198,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div class="logo">🔬 Team Smos <span>Lab Tracker</span></div>
     <div class="header-right">
       <span class="huser" id="huser"></span>
+      <button class="bhdr" onclick="staticLoaded=false;loadAll()">🔄 Refresh</button>
       <button class="bhdr" onclick="openChangePw()">🔑 Password</button>
       <div id="adminBtns" style="display:none;"><button class="bhdr" onclick="openUserMgmt()">👥 Users</button></div>
       <button class="bso" onclick="doLogout()">⏻ Sign Out</button>
@@ -391,16 +393,27 @@ function doLogout(){
   currentUser=null;localStorage.removeItem('labUser');showLogin();
 }
 
-async function loadAll(){
+// Cache static data (staff, labs, tests, users rarely change)
+let staticLoaded=false;
+
+async function loadAll(requestsOnly=false){
   document.getElementById('tabContent').innerHTML='<div class="loading">⏳ Loading...</div>';
   try{
-    const [req,stf,labs,tests,users]=await Promise.all([
-      api({action:'getRequests'}),api({action:'getStaff'}),
-      api({action:'getPartnerLabs'}),api({action:'getTestMaster'}),api({action:'getUsers'})
-    ]);
-    allRequests=arr(req);
-    staffList=arr(stf).filter(s=>s.Active==='Yes'||s.Active===true);
-    partnerLabs=arr(labs);testMaster=arr(tests);usersList=arr(users);
+    if(!staticLoaded||!requestsOnly){
+      // Load everything first time or when forced
+      const [req,stf,labs,tests,users]=await Promise.all([
+        api({action:'getRequests'}),api({action:'getStaff'}),
+        api({action:'getPartnerLabs'}),api({action:'getTestMaster'}),api({action:'getUsers'})
+      ]);
+      allRequests=arr(req);
+      staffList=arr(stf).filter(s=>s.Active==='Yes'||s.Active===true);
+      partnerLabs=arr(labs);testMaster=arr(tests);usersList=arr(users);
+      staticLoaded=true;
+    } else {
+      // Only reload requests (fast - 1 call instead of 5)
+      const req=await api({action:'getRequests'});
+      allRequests=arr(req);
+    }
     fillDropdowns();renderTab();
   }catch(e){
     document.getElementById('tabContent').innerHTML=`<div class="empty"><div class="eicon">⚠️</div><h3>Connection Error</h3><p>Could not load data. <button onclick="loadAll()" style="color:var(--blue);background:none;border:none;cursor:pointer;font-size:14px;text-decoration:underline;">Try again</button></p></div>`;
@@ -662,7 +675,7 @@ function renderList(data){
           <td>${fdt(r.Request_DateTime)}</td>
           <td>${sname(r.Released_By)||'-'}</td>
           <td>${r.Released_DateTime?fdt(r.Released_DateTime):'-'}</td>
-          <td style="color:var(--blue);font-weight:500;">${r.Remark||'-'}</td>
+          <td style="color:var(--blue);font-weight:500;">${r.Status==='Completed'?'-':r.Remark||'-'}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -767,7 +780,7 @@ function card(r,status){
         <div class="ci"><span class="ci-lbl">Created By</span><span class="ci-val">${sname(r.Created_By)}</span></div>
         <div class="ci"><span class="ci-lbl">Request Date</span><span class="ci-val">${fdt(r.Request_DateTime)}</span></div>
         ${r.Specimen?`<div class="ci"><span class="ci-lbl">Specimen</span><span class="ci-val">${r.Specimen}</span></div>`:''}
-        ${r.Remark?`<div class="ci"><span class="ci-lbl">Remark</span><span class="ci-val blue">${r.Remark}</span></div>`:''}
+        ${r.Remark&&r.Status!=='Completed'?`<div class="ci"><span class="ci-lbl">Remark</span><span class="ci-val blue">${r.Remark}</span></div>`:''}
         ${r.Status==='Completed'?`<div class="ci"><span class="ci-lbl">Released By</span><span class="ci-val">${sname(r.Released_By)}</span></div><div class="ci"><span class="ci-lbl">Released At</span><span class="ci-val">${fdt(r.Released_DateTime)}</span></div>`:''}
       </div>
     </div>
@@ -879,7 +892,7 @@ async function saveRequest(){
       });
       if(res.error){alert('Error: '+res.error);return;}
       closeM('reqModal');showToast('✅ Request updated successfully');
-      await loadAll();
+      await loadAll(true);
     }catch(e){alert('Network error. Please try again.');}
     finally{isSaving=false;setBtn(btn,'Update Request',false);}
     return;
@@ -902,7 +915,7 @@ async function saveRequest(){
       Category:t.Category||'',Specimen:specimen,Remark:remark
     })));
     showToast(`✅ Saved ${selected.length} test(s) successfully`);
-    await loadAll();
+    await loadAll(true);
   }catch(e){showToast('❌ Error saving. Please try again.');}
   finally{isSaving=false;setBtn(btn,'Save Request',false);}
 }
@@ -924,7 +937,7 @@ async function deleteReq(rowId,requestId){
     const res=await api({action:'deleteRequest',Row_ID:rowId});
     if(res.error){alert('Error: '+res.error);return;}
     showToast(`🗑️ Request ${requestId} deleted`);
-    await loadAll();
+    await loadAll(true);
   }catch(e){alert('Error deleting request.');}
 }
 
@@ -937,13 +950,13 @@ async function confirmComplete(){
   setBtn(btn,'Saving...',true);
   try{
     await api({action:'updateRequest',Row_ID:completingRowId,Status:'Completed',Released_By:rb,ClearRemark:'true'});
-    closeM('completeModal');showToast('✅ Marked as Completed');await loadAll();
+    closeM('completeModal');showToast('✅ Marked as Completed');await loadAll(true);
   }catch(e){alert('Error. Please try again.');}
   finally{setBtn(btn,'Confirm',false);}
 }
 async function reopenReq(rowId){
   if(!confirm('Reopen this request?'))return;
-  try{await api({action:'updateRequest',Row_ID:rowId,Status:'Pending',Released_By:''});showToast('↩ Request reopened');await loadAll();}
+  try{await api({action:'updateRequest',Row_ID:rowId,Status:'Pending',Released_By:''});showToast('↩ Request reopened');await loadAll(true);}
   catch(e){alert('Error reopening.');}
 }
 
