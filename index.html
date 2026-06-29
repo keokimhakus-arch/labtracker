@@ -158,7 +158,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .utable td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
 .utable tr:last-child td{border-bottom:none;}
 .rb{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
-.rb.admin{background:var(--blue-light);color:var(--blue);}.rb.staff{background:var(--green-light);color:var(--green);}
+.rb.admin{background:var(--blue-light);color:var(--blue);}
+.rb.staff{background:var(--green-light);color:var(--green);}
+.rb.manager{background:#FFF3E0;color:#E65100;}
 .empty{text-align:center;padding:50px 20px;color:var(--muted);}
 .eicon{font-size:44px;margin-bottom:10px;}
 .empty h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
@@ -319,7 +321,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
       <div class="lerr" id="addUserErr"></div>
       <div class="fg"><label class="fl">Username <span class="req">*</span></label><input class="fi" id="nu-user" placeholder="Enter username" onkeydown="if(event.key==='Enter')doAddUser()"></div>
       <div class="fg"><label class="fl">Password <span class="req">*</span></label><input class="fi" type="password" id="nu-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter')doAddUser()"></div>
-      <div class="fg"><label class="fl">Role <span class="req">*</span></label><select class="fs" id="nu-role"><option value="Staff">Staff</option><option value="Admin">Admin</option></select></div>
+      <div class="fg"><label class="fl">Role <span class="req">*</span></label><select class="fs" id="nu-role"><option value="Staff">Staff</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select></div>
     </div>
     <div class="mfoot">
       <button class="bs" onclick="closeM('addUserModal')">Cancel</button>
@@ -350,7 +352,7 @@ function showLogin(){
 function showApp(){
   hide('loginScreen');show('mainApp');
   document.getElementById('huser').textContent='👤 '+currentUser.Username+' ('+currentUser.Role+')';
-  document.getElementById('adminBtns').style.display=currentUser.Role==='Admin'?'inline-flex':'none';
+  document.getElementById('adminBtns').style.display=(currentUser.Role==='Admin'||currentUser.Role==='Manager')?'inline-flex':'none';
   document.getElementById('ctab-all')?.classList.add('active');
   loadAll();
   // Auto sign out after 3 hours
@@ -660,7 +662,7 @@ function renderList(data){
           <td>${fdt(r.Request_DateTime)}</td>
           <td>${sname(r.Released_By)||'-'}</td>
           <td>${r.Released_DateTime?fdt(r.Released_DateTime):'-'}</td>
-          <td>${r.Remark||'-'}</td>
+          <td style="color:var(--blue);font-weight:500;">${r.Remark||'-'}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -730,8 +732,8 @@ function card(r,status){
   const bc={'over-tat':'over','approaching':'approach','on-track':'ontrack','completed':'done'};
   const vc={'over-tat':'red','approaching':'orange','on-track':'green','completed':''};
   const due=calcDue(r.Request_DateTime,r.TAT_Value,r.TAT_Unit);
-  const isAdmin=currentUser&&currentUser.Role==='Admin';
-  const adminBtns=isAdmin?`<button class="bdel" onclick="deleteReq('${r.Row_ID}','${r.Request_ID}')">🗑️ Delete</button>`:'';
+  const canDelete=currentUser&&(currentUser.Role==='Admin'||currentUser.Role==='Manager');
+  const adminBtns=canDelete?`<button class="bdel" onclick="deleteReq('${r.Row_ID}','${r.Request_ID}')">🗑️ Delete</button>`:'';
   const isUrgent=r.Urgent==='Yes'||r.Urgent===true;
   const urgentBtn=r.Status==='Pending'?`<button class="burgent ${isUrgent?'active':''}" onclick="toggleUrgent('${r.Row_ID}',${isUrgent})">${isUrgent?'🚨 Urgent':'⚑ Urgent'}</button>`:'';
   const urgentMark=isUrgent?`<span class="urgent-badge">🚨 URGENT</span>`:'';
@@ -765,7 +767,7 @@ function card(r,status){
         <div class="ci"><span class="ci-lbl">Created By</span><span class="ci-val">${sname(r.Created_By)}</span></div>
         <div class="ci"><span class="ci-lbl">Request Date</span><span class="ci-val">${fdt(r.Request_DateTime)}</span></div>
         ${r.Specimen?`<div class="ci"><span class="ci-lbl">Specimen</span><span class="ci-val">${r.Specimen}</span></div>`:''}
-        ${r.Remark?`<div class="ci"><span class="ci-lbl">Remark</span><span class="ci-val">${r.Remark}</span></div>`:''}
+        ${r.Remark?`<div class="ci"><span class="ci-lbl">Remark</span><span class="ci-val blue">${r.Remark}</span></div>`:''}
         ${r.Status==='Completed'?`<div class="ci"><span class="ci-lbl">Released By</span><span class="ci-val">${sname(r.Released_By)}</span></div><div class="ci"><span class="ci-lbl">Released At</span><span class="ci-val">${fdt(r.Released_DateTime)}</span></div>`:''}
       </div>
     </div>
@@ -934,7 +936,7 @@ async function confirmComplete(){
   if(!rb){alert('Please select who is releasing this result');return;}
   setBtn(btn,'Saving...',true);
   try{
-    await api({action:'updateRequest',Row_ID:completingRowId,Status:'Completed',Released_By:rb});
+    await api({action:'updateRequest',Row_ID:completingRowId,Status:'Completed',Released_By:rb,ClearRemark:'true'});
     closeM('completeModal');showToast('✅ Marked as Completed');await loadAll();
   }catch(e){alert('Error. Please try again.');}
   finally{setBtn(btn,'Confirm',false);}
@@ -974,9 +976,13 @@ function renderUsers(){
     <thead><tr><th>#</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>${usersList.map(u=>`<tr>
       <td>${u.User_ID}</td><td><strong>${u.Username}</strong></td>
-      <td><span class="rb ${u.Role==='Admin'?'admin':'staff'}">${u.Role}</span></td>
+      <td><span class="rb ${u.Role==='Admin'?'admin':u.Role==='Manager'?'manager':'staff'}">${u.Role}</span></td>
       <td><span style="color:${u.Active==='Yes'?'var(--green)':'var(--red)'};">${u.Active==='Yes'?'Active':'Inactive'}</span></td>
-      <td>${u.Username!==currentUser.Username?`<button class="bdng bsm" onclick="delUser('${u.User_ID}','${u.Username}')">Delete</button>`:'<span style="color:var(--muted);font-size:12px;">You</span>'}</td>
+      <td>${(()=>{
+        if(u.Username===currentUser.Username)return'<span style="color:var(--muted);font-size:12px;">You</span>';
+        if(currentUser.Role==='Manager'&&u.Role==='Admin')return'<span style="color:var(--muted);font-size:12px;">Protected</span>';
+        return`<button class="bdng bsm" onclick="delUser('${u.User_ID}','${u.Username}','${u.Role}')">Delete</button>`;
+      })()}</td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
@@ -997,7 +1003,8 @@ async function doAddUser(){
   }catch(e){showErr('addUserErr','Error. Please try again.');}
   finally{setBtn(btn,'Add User',false);}
 }
-async function delUser(id,username){
+async function delUser(id,username,role){
+  if(currentUser.Role==='Manager'&&role==='Admin'){alert('Managers cannot delete Admin accounts.');return;}
   if(!confirm(`Delete user "${username}"?\nThis cannot be undone.`))return;
   try{
     await api({action:'deleteUser',User_ID:id});showToast('🗑️ User deleted');
