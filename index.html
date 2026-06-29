@@ -534,7 +534,7 @@ function renderTab(){
   updateBadges();
   const q=(document.getElementById('searchInput').value||'').trim().toLowerCase();
   let data=q?allRequests.filter(r=>
-    (r.Request_ID||'').toLowerCase().startsWith(q)||
+    (r.Request_ID||'').toLowerCase().includes(q)||
     (r.Patient_Name||'').toLowerCase().includes(q)||
     lname(r.Partner).toLowerCase().includes(q)||
     (r.Test_Name||'').toLowerCase().includes(q)||
